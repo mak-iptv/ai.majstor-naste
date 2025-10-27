@@ -1,37 +1,43 @@
-// Skedari: script.js
+// server/script.js
+import express from "express";
+import bodyParser from "body-parser";
+import fetch from "node-fetch";
 
-import { GoogleGenAI } from "@google/genai";
+const app = express();
+app.use(bodyParser.json());
 
-// Inicializon GoogleGenAI. 
-// Ajo automatikisht gjen çelësin API nga variabla e mjedisit GEMINI_API_KEY.
-const ai = new GoogleGenAI({});
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-async function merrPergjigjeGemini() {
-    // Specifikon modelin që do të përdoret
-    const model = "gemini-2.5-flash"; 
-    
-    // Kërkesa (prompt) që do t'i dërgoni AI-së
-    const prompt = "Shkruaj një poezi të shkurtër prej katër vargjesh për diellin dhe detin.";
-
-    console.log(`Duke dërguar kërkesën: "${prompt}"`);
-
-    try {
-        // Thirrja API për të gjeneruar përmbajtje
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-        });
-
-        // Merr tekstin e përgjigjes
-        const text = response.text;
-        
-        console.log("\n--- Përgjigjja e Gemini-t ---");
-        console.log(text);
-        console.log("----------------------------");
-
-    } catch (error) {
-        console.error("Ndodhi një gabim gjatë thirrjes së API-së së Gemini:", error);
-    }
+if (!GEMINI_API_KEY) {
+  console.error("❌ Mungon GEMINI_API_KEY (shtoje si secret në GitHub)!");
+  process.exit(1);
 }
 
-merrPergjigjeGemini();
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: "Missing message" });
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: message }] }],
+        }),
+      }
+    );
+
+    const data = await response.json();
+    const reply =
+      data.candidates?.[0]?.content?.parts?.[0]?.text || "(No response)";
+    res.json({ reply });
+  } catch (error) {
+    console.error("❌ Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
