@@ -21,15 +21,15 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: server
+      
 
       - name: Build package (optional)
         run: npm run build || echo "No build step"
-        working-directory: server
+       
 
       - name: Publish package
         run: npm publish
-        working-directory: server
+        
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
