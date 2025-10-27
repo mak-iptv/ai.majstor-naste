@@ -1,40 +1,25 @@
-// server.js
-import express from "express";
-import fetch from "node-fetch"; // Node.js 20+ може и global fetch
-
-const app = express();
-app.use(express.json());
-
-// Вземаме ключа от environment (GitHub Secrets или локално .env)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-if (!GEMINI_API_KEY) {
-  console.error("GEMINI_API_KEY");
-  process.exit(1);
-}
-
-app.post("/api/gemini", async (req, res) => {
+// public/script.js
+async function sendMessage(message) {
   try {
-    const userPrompt = req.body.prompt;
-
-    const response = await fetch("https://api.ai.google/v1/gemini:generate", {
+    const response = await fetch("/api/chat", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GEMINI_API_KEY}`
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        model: "gemini-2.5",
-        prompt: userPrompt
-      })
+      body: JSON.stringify({ message })
     });
 
     const data = await response.json();
-    res.json(data);
+    console.log("Bot reply:", data.reply);
+    return data.reply;
   } catch (err) {
-    console.error("Gemini proxy error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Error:", err);
   }
-});
+}
 
-const PORT = process
+// Shembull përdorimi
+document.querySelector("#sendBtn").addEventListener("click", async () => {
+  const message = document.querySelector("#messageInput").value;
+  const reply = await sendMessage(message);
+  document.querySelector("#chatBox").innerText += `\nBot: ${reply}`;
+});
