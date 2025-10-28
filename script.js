@@ -11,7 +11,7 @@ chatForm.addEventListener('submit', async (e) => {
   userInput.value = '';
 
   try {
-    const response = await fetch('https://gemini-ai-6z3a.onrender.com/chat', {
+    const response = await fetch('https://gemini-ai-server.onrender.com/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message })
