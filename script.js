@@ -1,35 +1,33 @@
-const chatDiv = document.getElementById('chat');
-const input = document.getElementById('input');
-const sendBtn = document.getElementById('send');
+const chatForm = document.getElementById('chat-form');
+const userInput = document.getElementById('user-input');
+const chatBox = document.getElementById('chat-box');
 
-const sessionId = '1'; // mund ta ruash në localStorage për multi-turn
+chatForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const message = userInput.value.trim();
+  if (!message) return;
 
-function addMessage(text, sender) {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'message ' + sender;
-    msgDiv.textContent = text;
-    chatDiv.appendChild(msgDiv);
-    chatDiv.scrollTop = chatDiv.scrollHeight;
+  appendMessage('user', message);
+  userInput.value = '';
+
+  try {
+    const response = await fetch('https://gemini-ai-6z3a.onrender.com/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+
+    const data = await response.json();
+    appendMessage('bot', data.reply || 'No response');
+  } catch (error) {
+    appendMessage('bot', 'Error connecting to server.');
+  }
+});
+
+function appendMessage(sender, text) {
+  const msg = document.createElement('div');
+  msg.classList.add('message', sender);
+  msg.textContent = text;
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
-
-async function sendMessage() {
-    const text = input.value.trim();
-    if (!text) return;
-    addMessage(text, 'user');
-    input.value = '';
-
-    try {
-        const res = await fetch('/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_id: sessionId, user_message: text })
-        });
-        const data = await res.json();
-        addMessage(data.reply, 'bot');
-    } catch(err) {
-        addMessage('Error: ' + err.message, 'bot');
-    }
-}
-
-sendBtn.addEventListener('click', sendMessage);
-input.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
