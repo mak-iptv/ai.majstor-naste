@@ -1,43 +1,35 @@
-// server/script.js
-import express from "express";
-import bodyParser from "body-parser";
-import fetch from "node-fetch";
+const chatDiv = document.getElementById('chat');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
 
-const app = express();
-app.use(bodyParser.json());
+const sessionId = '1'; // mund ta ruash në localStorage për multi-turn
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-if (!GEMINI_API_KEY) {
-  console.error("❌ Mungon GEMINI_API_KEY (shtoje si secret në GitHub)!");
-  process.exit(1);
+function addMessage(text, sender) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message ' + sender;
+    msgDiv.textContent = text;
+    chatDiv.appendChild(msgDiv);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
 }
 
-app.post("/api/chat", async (req, res) => {
-  try {
-    const { message } = req.body;
-    if (!message) return res.status(400).json({ error: "Missing message" });
+async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+    addMessage(text, 'user');
+    input.value = '';
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: message }] }],
-        }),
-      }
-    );
+    try {
+        const res = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, user_message: text })
+        });
+        const data = await res.json();
+        addMessage(data.reply, 'bot');
+    } catch(err) {
+        addMessage('Error: ' + err.message, 'bot');
+    }
+}
 
-    const data = await response.json();
-    const reply =
-      data.candidates?.[0]?.content?.parts?.[0]?.text || "(No response)";
-    res.json({ reply });
-  } catch (error) {
-    console.error("❌ Error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+sendBtn.addEventListener('click', sendMessage);
+input.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
